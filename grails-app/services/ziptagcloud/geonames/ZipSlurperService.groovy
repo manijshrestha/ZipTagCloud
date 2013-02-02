@@ -28,6 +28,6 @@ class ZipSlurperService {
 	 * {@link ZipSlurperService#getZipsForState(String, int)}
 	 */
 	List getZipsOfState(String state) {
-		this.getZipsForState(state, 500)
+		this.getZipsOfState(state, 500)
 	}
 }

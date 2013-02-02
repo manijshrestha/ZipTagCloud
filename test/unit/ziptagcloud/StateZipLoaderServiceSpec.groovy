@@ -19,7 +19,7 @@ class StateZipLoaderServiceSpec extends UnitSpec{
 		stateList.size() == 51
 	}
 
-	def "For given state service calls the ZipSlurperService"() {
+	def "ZipSlurperService is called for given state and data is populated"() {
 		setup:
 		mockDomain(State)
 		def State minnesota = new State(stateCode: "MN", displayName: "Minnesota")

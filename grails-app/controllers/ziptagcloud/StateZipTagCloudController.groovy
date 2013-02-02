@@ -1,9 +1,13 @@
 package ziptagcloud
 
 class StateZipTagCloudController {
+	StateZipLoaderService stateZipLoaderService
+	
 	//static scaffold = State
     def index() {
-		int count = State.getAll().size()
-		render "We have ${count} States in the system."
+		//stateZipLoaderService.populateAll()
+		def states = State.getAll()
+		int count = states.size()
+		[stateList: states]
 	}
 }
