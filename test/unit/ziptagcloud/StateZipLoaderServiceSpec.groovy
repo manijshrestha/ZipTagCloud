@@ -13,7 +13,9 @@ class StateZipLoaderServiceSpec extends UnitSpec{
 		mockDomain(State)
 		mockDomain(ZipCode)
 		
-		def State minnesota = new State(stateCode: "MN", displayName: "Minnesota")
+		State.metaClass.static.withNewSession = {Closure c -> c.call() }
+		
+		State minnesota = new State(stateCode: "MN", displayName: "Minnesota")
 
 		//Mocking the Zip Slurper 
 		ZipSlurperService mockZipSlurperService = Mock()
@@ -31,5 +33,25 @@ class StateZipLoaderServiceSpec extends UnitSpec{
 		
 		ZipCode expected = new ZipCode(zipCode: "55401", state: minnesota);
 		assert minnesota.zipCodes.contains(expected)
+	}
+	
+	def "All Zip codes are removed from a given state"() {
+		setup:
+		mockDomain(State)
+		mockDomain(ZipCode)
+		
+		State iowa = new State(stateCode: "IA", displayName: "Iowa")
+		ZipCode zipCode = new ZipCode(zipCode: "52101", state: iowa)
+		iowa.addToZipCodes(zipCode)
+		
+		ZipCode.metaClass.static.findAllByState = { State state -> state.zipCodes}
+		
+		def stateZipLoaderService = new StateZipLoaderService()
+		
+		when:
+		stateZipLoaderService.clearZipCodeForState(iowa)
+		
+		then:
+		assert iowa.zipCodes.size() == 0
 	}
 }

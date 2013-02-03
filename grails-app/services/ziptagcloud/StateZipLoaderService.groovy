@@ -34,7 +34,6 @@ class StateZipLoaderService {
 				else
 					log.debug "${it} already in database."
 			}
-			//state.save(flush: true)
 		}
 		log.debug("Processed ${state} in: " + TimeCategory.minus( new Date(), startTime) )
 	}
@@ -55,11 +54,10 @@ class StateZipLoaderService {
 	 */
 	void clearZipCodeForState(State state){
 		def zipCodes = ZipCode.findAllByState(state)
-		zipCodes.each{
-			state.removeFromZipCodes(it)
-			it.delete()
-		}
-		state.save(flush: true)
+			zipCodes.each{
+				state.removeFromZipCodes(it)
+				it.delete()
+			}
 	}
 
 	/**
@@ -67,6 +65,6 @@ class StateZipLoaderService {
 	 */
 	void clearAllZipCodes() {
 		def states = State.getAll()
-		states.each{ clearZipCodeForState(it)}
+		states.each{ clearZipCodeForState(it) }
 	}
 }
