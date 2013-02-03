@@ -8,20 +8,11 @@ import ziptagcloud.geonames.ZipSlurperService
  */
 class StateZipLoaderServiceSpec extends UnitSpec{
 
-	def "StateZipLoaderService returns full state list"(){
-		setup:
-		def stateZipLoaderService = new StateZipLoaderService()
-
-		when:
-		def stateList = stateZipLoaderService.getStates()
-
-		then:
-		stateList.size() == 51
-	}
-
 	def "ZipSlurperService is called for given state and data is populated"() {
 		setup:
 		mockDomain(State)
+		mockDomain(ZipCode)
+		
 		def State minnesota = new State(stateCode: "MN", displayName: "Minnesota")
 
 		//Mocking the Zip Slurper 

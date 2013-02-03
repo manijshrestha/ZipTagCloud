@@ -1,96 +1,72 @@
 package ziptagcloud
 
 import ziptagcloud.geonames.ZipSlurperService
+import groovy.time.*
+import groovyx.gpars.GParsPool
 
 class StateZipLoaderService {
-	
+
+
 	ZipSlurperService zipSlurperService
 
-	//Returns the List of State
-    Map<String, State> getStates() {
-		def stateMap = [
-		"AL":"Alabama",
-		"AK":"Alaska",
-		"AZ":"Arizona",
-		"AR":"Arkansas",
-		"CA":"California",
-		"CO":"Colorado",
-		"CT":"Connecticut",
-		"DC":"District of Columbia",
-		"DE":"Delaware",
-		"FL":"Florida",
-		"GA":"Georgia",
-		"HI":"Hawaii",
-		"ID":"Idaho",
-		"IL":"Illinois",
-		"IN":"Indiana",
-		"IA":"Iowa",
-		"KS":"Kansas",
-		"KY":"Kentucky",
-		"LA":"Louisiana",
-		"ME":"Maine",
-		"MD":"Maryland",
-		"MA":"Massachusetts",
-		"MI":"Michigan",
-		"MN":"Minnesota",
-		"MS":"Mississippi",
-		"MO":"Missouri",
-		"MT":"Montana",
-		"NE":"Nebraska",
-		"NV":"Nevada",
-		"NH":"New Hampshire",
-		"NJ":"New Jersey",
-		"NM":"New Mexico",
-		"NY":"New York",
-		"NC":"North Carolina",
-		"ND":"North Dakota",
-		"OH":"Ohio",
-		"OK":"Oklahoma",
-		"OR":"Oregon",
-		"PA":"Pennsylvania",
-		"RI":"Rhode Island",
-		"SC":"South Carolina",
-		"SD":"South Dakota",
-		"TN":"Tennessee",
-		"TX":"Texas",
-		"UT":"Utah",
-		"VT":"Vermont",
-		"VA":"Virginia",
-		"WA":"Washington",
-		"WI":"Wisconsin",
-		"WV":"West Virginia",
-		"WY":"Wyoming"]
-		
-		def stateList = [:]
-		stateMap.each {
-			State state = new State(stateCode: it.key, displayName: it.value)
-			stateList.put(it.key, state)
-		}
-		
-		return stateList
-    }
-	
 	/**
 	 * Populates the state with proper zip
 	 * 
 	 * @param state
 	 */
-	void populate(State state){
+	 void populate(State state){
+		def startTime = new Date()
+
 		def zipsOfState = zipSlurperService.getZipsOfState(state.stateCode)
-		zipsOfState.each{
-			ZipCode zipCode = new ZipCode([zipCode: it, state: state])
-			state.addToZipCodes(zipCode)
+		State.withNewSession {
+			zipsOfState.each{
+				log.debug "Parsing ${state} : Zip: ${it}"
+				def persistantZipCode = ZipCode.findByZipCode(it)
+				if (!persistantZipCode){
+					ZipCode zipCode = new ZipCode([zipCode: it, state: state])
+					if (zipCode.validate()){
+						state.addToZipCodes(zipCode)
+						zipCode.save()
+					}
+					else
+						zipCode.discard()
+				}
+				else
+					log.debug "${it} already in database."
+			}
+			//state.save(flush: true)
 		}
-		state.save()
+		log.debug("Processed ${state} in: " + TimeCategory.minus( new Date(), startTime) )
 	}
-	
+
 	/**
 	 * Populates all the state with zipcode information
 	 */
 	void populateAll() {
-		def states = getStates()
-		states.each{
-			populate(it.value)
+		def states = State.getAll()
+		GParsPool.withPool {
+			states.eachParallel{ populate(it) }
 		}
+	}
+
+
+	/**
+	 * Clears zip codes of a state
+	 */
+	void clearZipCodeForState(State state){
+		def zipCodes = ZipCode.findAllByState(state)
+		zipCodes.each{
+			state.removeFromZipCodes(it)
+			it.delete()
+		}
+		state.save(flush: true)
+	}
+
+	/**
+	 * Clears all the zipcode from State
+	 */
+	void clearAllZipCodes() {
+		def states = State.getAll()
+		states.each{ clearZipCodeForState(it)}
 	}
 }
